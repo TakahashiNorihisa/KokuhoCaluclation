@@ -3,78 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>所得計算テスト</title>
+    <title>国保料 簡易計算シミュレーター</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; padding-top: 20px; }
-        .container { max-width: 950px; }
-        .table-calculated { background-color: #fff3cd; font-weight: bold; }
-        .status-badge { font-size: 0.8rem; margin-left: 10px; }
+        body { background-color: #f8f9fa; }
+        .container { max-width: 950px; margin-top: 30px; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .page { display: none; }
+        .page.active { display: block; }
+        .table-responsive { font-size: 0.85rem; }
+        .table th { white-space: nowrap; background-color: #e9ecef; }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+        .calculated-row { background-color: #fff3cd; font-weight: bold; }
+        .status-badge { font-size: 0.7rem; vertical-align: middle; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <h2 class="text-center mb-4">国保料 簡易計算 <span id="csvStatus" class="badge bg-secondary status-badge">CSV読込中...</span></h2>
+
     <div class="card p-4">
-        <h4 class="mb-3">所得計算テスト画面 
-            <span id="csvStatus" class="badge bg-secondary status-badge">CSV読み込み中...</span>
-        </h4>
-        
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th style="width: 200px;">項目</th>
-                        <th>1人目</th>
-                        <th>2人目</th>
-                        <th>3人目</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th>給与収入（入力してね）</th>
-                        <td><input type="number" class="form-control salary-input" data-person="0" placeholder="例: 1500000"></td>
-                        <td><input type="number" class="form-control salary-input" data-person="1" placeholder="例: 1500000"></td>
-                        <td><input type="number" class="form-control salary-input" data-person="2" placeholder="例: 1500000"></td>
-                    </tr>
-                    <tr>
-                        <th>介護分限所得有無</th>
-                        <td><select class="form-select"><option>無</option><option>有</option></select></td>
-                        <td><select class="form-select"><option>無</option><option>有</option></select></td>
-                        <td><select class="form-select"><option>無</option><option>有</option></select></td>
-                    </tr>
-                    <tr>
-                        <th>年金収入(64歳以下)</th>
-                        <td><input type="number" class="form-control" value="0"></td>
-                        <td><input type="number" class="form-control" value="0"></td>
-                        <td><input type="number" class="form-control" value="0"></td>
-                    </tr>
-                    <tr>
-                        <th>年金収入(65歳以上)</th>
-                        <td><input type="number" class="form-control" value="0"></td>
-                        <td><input type="number" class="form-control" value="0"></td>
-                        <td><input type="number" class="form-control" value="0"></td>
-                    </tr>
-                    <tr><th>その他所得１</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
-                    <tr><th>その他所得２</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
-                    <tr><th>その他所得３</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
-                    <tr><th>その他所得４</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
-                    <tr><th>その他所得５</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
-                    
-                    <!-- ここに自動計算された所得が表示されます -->
-                    <tr class="table-calculated">
-                        <th>【自動計算】給与所得</th>
-                        <td id="res0">0</td>
-                        <td id="res1">0</td>
-                        <td id="res2">0</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- ページ1: 世帯構成 -->
+        <div id="page1" class="page active">
+            <h4 class="mb-4">1. 世帯構成について</h4>
+            <div class="mb-3">
+                <label class="form-label">１．国保に加入する人は何人ですか？</label>
+                <input type="number" class="form-control" id="q1" placeholder="0" min="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">２．その内で、介護対象者は何人ですか？</label>
+                <input type="number" class="form-control" id="q2" placeholder="0" min="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">３．その内で、未就学児は何人ですか？</label>
+                <input type="number" class="form-control" id="q3" placeholder="0" min="0">
+            </div>
+            <div class="mb-4">
+                <label class="form-label">４．１９歳以上の方は何人ですか？</label>
+                <input type="number" class="form-control" id="q4" placeholder="0" min="0">
+            </div>
+            <div class="nav-buttons">
+                <div></div>
+                <button class="btn btn-primary btn-lg" onclick="nextPage()">次へ：所得の入力 ＞</button>
+            </div>
         </div>
-        
-        <div class="mt-3 p-3 bg-light border">
-            <h5>デバッグログ:</h5>
-            <small id="debugLog" class="text-muted">ここに計算の裏側が表示されます</small>
+
+        <!-- ページ2: 所得情報 -->
+        <div id="page2" class="page">
+            <h4 class="mb-4">2. 所得について</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 160px;">項目</th>
+                            <th>1人目</th>
+                            <th>2人目</th>
+                            <th>3人目</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>給与収入</th>
+                            <td><input type="number" class="form-control salary-input" data-person="0" placeholder="0"></td>
+                            <td><input type="number" class="form-control salary-input" data-person="1" placeholder="0"></td>
+                            <td><input type="number" class="form-control salary-input" data-person="2" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>介護分限所得有無</th>
+                            <td><select class="form-select"><option>無</option><option>有</option></select></td>
+                            <td><select class="form-select"><option>無</option><option>有</option></select></td>
+                            <td><select class="form-select"><option>無</option><option>有</option></select></td>
+                        </tr>
+                        <tr>
+                            <th>年金収入(64歳以下)</th>
+                            <td><input type="number" class="form-control" value="0"></td>
+                            <td><input type="number" class="form-control" value="0"></td>
+                            <td><input type="number" class="form-control" value="0"></td>
+                        </tr>
+                        <tr>
+                            <th>年金収入(65歳以上)</th>
+                            <td><input type="number" class="form-control" value="0"></td>
+                            <td><input type="number" class="form-control" value="0"></td>
+                            <td><input type="number" class="form-control" value="0"></td>
+                        </tr>
+                        <tr><th>その他所得１</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
+                        <tr><th>その他所得２</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
+                        <tr><th>その他所得３</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
+                        <tr><th>その他所得４</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
+                        <tr><th>その他所得５</th><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td><td><input type="number" class="form-control" value="0"></td></tr>
+                        
+                        <tr class="calculated-row">
+                            <th>給与所得(自動計算)</th>
+                            <td id="res0">0</td>
+                            <td id="res1">0</td>
+                            <td id="res2">0</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="nav-buttons mt-4">
+                <button class="btn btn-secondary" onclick="prevPage()">＜ 戻る</button>
+                <button class="btn btn-success btn-lg" onclick="alert('計算ロジックを実装します')">計算する</button>
+            </div>
         </div>
     </div>
 </div>
@@ -86,14 +117,10 @@
     async function init() {
         const status = document.getElementById('csvStatus');
         try {
-            // キャッシュを避けるためにタイムスタンプを付与
             const response = await fetch('salary_table.csv?t=' + new Date().getTime());
-            if (!response.ok) throw new Error('ファイルが見つかりません');
-            
+            if (!response.ok) throw new Error();
             const data = await response.text();
             const lines = data.split(/\r?\n/);
-            
-            // CSVを解析
             for (let i = 1; i < lines.length; i++) {
                 const cols = lines[i].split(',');
                 if (cols.length >= 3) {
@@ -104,40 +131,42 @@
                     });
                 }
             }
-            status.innerText = "CSV読み込み成功！";
+            status.innerText = "CSV連携中";
             status.className = "badge bg-success status-badge";
         } catch (e) {
-            status.innerText = "CSV読み込みエラー: " + e.message;
+            status.innerText = "CSV未読込";
             status.className = "badge bg-danger status-badge";
         }
     }
 
-    // 入力イベント
+    // 画面切り替え
+    function nextPage() {
+        document.getElementById('page1').classList.remove('active');
+        document.getElementById('page2').classList.add('active');
+        window.scrollTo(0, 0);
+    }
+    function prevPage() {
+        document.getElementById('page2').classList.remove('active');
+        document.getElementById('page1').classList.add('active');
+        window.scrollTo(0, 0);
+    }
+
+    // 給与所得の自動計算
     document.querySelectorAll('.salary-input').forEach(input => {
         input.addEventListener('input', function() {
             const val = parseInt(this.value) || 0;
             const personIdx = this.dataset.person;
-            const log = document.getElementById('debugLog');
-            
-            // 計算ロジック
             let resultIncome = 0;
             const match = salaryTable.find(row => val >= row.min && val <= row.max);
             
             if (match) {
                 if (match.incomeStr.includes('salary')) {
-                    // 数式計算 (例: salary-550000)
                     resultIncome = eval(match.incomeStr.replace('salary', val));
                 } else {
-                    // 固定値
                     resultIncome = parseInt(match.incomeStr);
                 }
-                log.innerText = `入力 ${val}円 に対し、範囲 ${match.min}〜${match.max} がヒットしました。所得：${resultIncome}`;
-            } else {
-                log.innerText = `入力 ${val}円 に該当する範囲がCSVにありません。`;
             }
-
-            // 画面に表示
-            document.getElementById(`res${personIdx}`).innerText = resultIncome.toLocaleString() + " 円";
+            document.getElementById(`res${personIdx}`).innerText = resultIncome.toLocaleString();
         });
     });
 
