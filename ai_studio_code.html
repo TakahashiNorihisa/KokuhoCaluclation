@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国保料 簡易計算シミュレーター</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { max-width: 900px; margin-top: 30px; }
+        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .page { display: none; }
+        .page.active { display: block; }
+        .table-responsive { font-size: 0.85rem; }
+        .table th { white-space: nowrap; background-color: #e9ecef; }
+        .nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 class="text-center mb-4">国保料 簡易計算</h2>
+
+    <div class="card p-4">
+        <!-- ページ1: 世帯構成 -->
+        <div id="page1" class="page active">
+            <h4 class="mb-4">1. 世帯構成について</h4>
+            <div class="mb-3">
+                <label class="form-label">１．国保に加入する人は何人ですか？</label>
+                <input type="number" class="form-control" placeholder="0" min="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">２．その内で、介護対象者は何人ですか？（40歳〜64歳）</label>
+                <input type="number" class="form-control" placeholder="0" min="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">３．その内で、未就学児は何人ですか？</label>
+                <input type="number" class="form-control" placeholder="0" min="0">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">４．１９歳以上の方は何人ですか？</label>
+                <input type="number" class="form-control" placeholder="0" min="0">
+            </div>
+            <div class="nav-buttons">
+                <div></div>
+                <button class="btn btn-primary" onclick="nextPage()">次へ：所得の入力 ＞</button>
+            </div>
+        </div>
+
+        <!-- ページ2: 所得情報 -->
+        <div id="page2" class="page">
+            <h4 class="mb-4">2. 所得について</h4>
+            <p class="text-muted small">※最大3名分まで入力できます</p>
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead>
+                        <tr>
+                            <th style="min-width: 150px;">項目</th>
+                            <th>1人目</th>
+                            <th>2人目</th>
+                            <th>3人目</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>給与収入</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>介護分限所得有無</th>
+                            <td>
+                                <select class="form-select">
+                                    <option value="無">無</option>
+                                    <option value="有">有</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select">
+                                    <option value="無">無</option>
+                                    <option value="有">有</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select">
+                                    <option value="無">無</option>
+                                    <option value="有">有</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>年金収入(64歳以下)</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>年金収入(65歳以上)</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>その他所得１</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>その他所得２</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>その他所得３</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>その他所得４</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                        <tr>
+                            <th>その他所得５</th>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                            <td><input type="number" class="form-control" placeholder="0"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="nav-buttons mt-4">
+                <button class="btn btn-secondary" onclick="prevPage()">＜ 戻る</button>
+                <button class="btn btn-success" onclick="calculate()">計算する（準備中）</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function nextPage() {
+        document.getElementById('page1').classList.remove('active');
+        document.getElementById('page2').classList.add('active');
+        window.scrollTo(0, 0);
+    }
+
+    function prevPage() {
+        document.getElementById('page2').classList.remove('active');
+        document.getElementById('page1').classList.add('active');
+        window.scrollTo(0, 0);
+    }
+
+    function calculate() {
+        alert("計算ロジックは次のステップで実装します。");
+    }
+</script>
+
+</body>
+</html>
