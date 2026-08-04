@@ -8,76 +8,92 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
         body { background-color: #f0f2f5; font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; }
-        .setup-container { display: flex; gap: 20px; padding: 20px; }
+        .setup-container { display: flex; gap: 20px; padding: 10px; }
         
-        .source-panel { width: 150px; background: #fff; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .person-seed { width: 80px; height: 80px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: pointer; margin: 0 auto; transition: transform 0.2s; }
+        /* 左側：追加エリア */
+        .source-panel { width: 160px; background: #fff; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .person-seed { width: 80px; height: 80px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: grab; margin: 0 auto; transition: transform 0.2s; }
+        .person-seed:active { cursor: grabbing; }
         .person-seed:hover { transform: scale(1.1); }
 
-        .drop-zone { flex-grow: 1; min-height: 400px; background: #fff; border: 3px dashed #cbd5e0; border-radius: 15px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-content: flex-start; }
+        /* 右側：世帯枠 */
+        .drop-zone { flex-grow: 1; min-height: 400px; background: #fff; border: 3px dashed #cbd5e0; border-radius: 15px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-content: flex-start; transition: background 0.3s; }
+        .drop-zone.drag-over { background: #e2e8f0; border-color: #4a5568; }
 
-        .person-item { width: 100px; text-align: center; cursor: pointer; }
+        /* 配置された人 */
+        .person-item { width: 100px; text-align: center; cursor: pointer; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .person-icon { width: 70px; height: 70px; background: #6c757d; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 5px; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .person-item:hover .person-icon { background: #495057; }
+        .person-label { font-size: 0.8rem; font-weight: bold; }
         
-        .remove-btn { position: absolute; top: -5px; right: -5px; background: #ff4757; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; cursor: pointer; }
+        .remove-btn { position: absolute; top: -5px; right: -5px; background: #ff4757; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; cursor: pointer; z-index: 10; }
 
+        /* 数字入力の右寄せ */
         input[type="number"] { text-align: right; }
-        .calc-result-box { text-align: right; font-weight: bold; border-bottom: 2px solid #007bff; padding: 2px 5px; width: 120px;}
+        .calc-result-box { text-align: right; font-weight: bold; border-bottom: 2px solid #007bff; padding: 2px 5px; width: 120px; display: inline-block;}
 
-        /* ラジオボタンのグリッド配置 */
+        /* 月選択のグリッド */
         .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .radio-group-container { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; }
+        .radio-card { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; }
+
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-primary mb-4">
+<nav class="navbar navbar-dark bg-primary mb-3">
     <div class="container-fluid">
         <span class="navbar-brand">国保料 簡易計算</span>
-        <span id="csvStatus" class="badge bg-light text-dark">CSV読込中...</span>
+        <span id="csvStatus" class="badge bg-light text-dark shadow-sm">CSV読込中...</span>
     </div>
 </nav>
 
 <div class="container">
+    <!-- 案内テキスト（復活） -->
+    <div class="alert alert-info shadow-sm">
+        左のアイコンを右の枠に<strong>ドラッグ</strong>するか<strong>クリック</strong>して国保に加入しているまたは加入予定の家族を追加してください。
+    </div>
+
     <div class="setup-container">
+        <!-- ソースパネル -->
         <div class="source-panel">
-            <h6>家族を追加</h6>
-            <div class="person-seed" onclick="addPerson()">
+            <h6 class="mb-3">家族を追加</h6>
+            <div class="person-seed" draggable="true" id="dragSeed" ondragstart="dragStartHandler(event)" onclick="addPerson()">
                 <i class="bi bi-person-plus-fill"></i>
             </div>
+            <p class="mt-3 text-muted small">ドラッグ or クリック</p>
         </div>
 
-        <div class="drop-zone" id="dropZone">
-            <!-- 追加された人が並ぶ -->
+        <!-- 世帯枠 -->
+        <div class="drop-zone" id="dropZone" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)">
+            <!-- ここに追加された人が並ぶ -->
         </div>
     </div>
 
     <div class="text-center mt-4">
-        <button class="btn btn-success btn-lg px-5" onclick="executeCalculation()">計算する</button>
+        <button class="btn btn-success btn-lg px-5 shadow" onclick="executeCalculation()">計算する</button>
     </div>
 </div>
 
 <!-- プロパティ編集モーダル -->
 <div class="modal fade" id="personModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content shadow-lg">
             <div class="modal-header bg-light">
                 <h5 class="modal-title">個人の詳細設定</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <!-- 左カラム：収入 -->
+                    <!-- 左カラム：収入情報 -->
                     <div class="col-md-6 border-end">
-                        <h6 class="mb-3 text-primary"><i class="bi bi-cash-stack"></i> 収入・所得情報</h6>
-                        
+                        <h6 class="mb-3 text-primary border-bottom pb-2">収入・所得情報</h6>
                         <div class="mb-3">
                             <label class="form-label small">生年月日</label>
                             <input type="date" class="form-control" id="m_birth">
                         </div>
-
                         <div class="mb-3 p-2 bg-light rounded border">
-                            <label class="form-label small">介護分限所得</label><br>
+                            <label class="form-label small d-block mb-2">介護分限所得有無</label>
                             <div class="form-check form-check-inline">
                                 <input class="form-check-input" type="radio" name="m_care" id="care_no" value="無" checked>
                                 <label class="form-check-label" for="care_no">無</label>
@@ -87,53 +103,51 @@
                                 <label class="form-check-label" for="care_yes">有</label>
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label small">給与収入</label>
                             <input type="number" class="form-control" id="m_salary" oninput="updateCalculatedIncome(this.value)" placeholder="0">
-                            <div class="mt-2 d-flex justify-content-between">
+                            <div class="mt-2 d-flex justify-content-between align-items-center">
                                 <span class="small text-muted">自動計算所得:</span>
-                                <span class="calc-result-box" id="m_calc_income">0</span>
+                                <span class="calc-result-box text-primary" id="m_calc_income">0</span>
                             </div>
                         </div>
-
-                        <div class="mb-3 border-top pt-2">
+                        <div class="mb-3">
                             <label class="form-label small">年金収入</label>
                             <input type="number" class="form-control" id="m_pension" placeholder="0">
                         </div>
-
                         <div class="row row-cols-2 g-2">
-                            <div class="col"><label class="small">その他所得1</label><input type="number" class="form-control" id="m_o1" placeholder="0"></div>
-                            <div class="col"><label class="small">その他所得2</label><input type="number" class="form-control" id="m_o2" placeholder="0"></div>
-                            <div class="col"><label class="small">その他所得3</label><input type="number" class="form-control" id="m_o3" placeholder="0"></div>
-                            <div class="col"><label class="small">その他所得4</label><input type="number" class="form-control" id="m_o4" placeholder="0"></div>
-                            <div class="col"><label class="small">その他所得5</label><input type="number" class="form-control" id="m_o5" placeholder="0"></div>
+                            <div class="col"><label class="small text-muted">その他所得1</label><input type="number" class="form-control form-control-sm" id="m_o1" placeholder="0"></div>
+                            <div class="col"><label class="small text-muted">その他所得2</label><input type="number" class="form-control form-control-sm" id="m_o2" placeholder="0"></div>
+                            <div class="col"><label class="small text-muted">その他所得3</label><input type="number" class="form-control form-control-sm" id="m_o3" placeholder="0"></div>
+                            <div class="col"><label class="small text-muted">その他所得4</label><input type="number" class="form-control form-control-sm" id="m_o4" placeholder="0"></div>
+                            <div class="col"><label class="small text-muted">その他所得5</label><input type="number" class="form-control form-control-sm" id="m_o5" placeholder="0"></div>
                         </div>
                     </div>
-
                     <!-- 右カラム：加入月 -->
                     <div class="col-md-6">
-                        <h6 class="mb-3 text-primary"><i class="bi bi-calendar-check"></i> 加入月数（4月〜翌3月）</h6>
-                        <div class="radio-group-container">
-                            <p class="small text-muted mb-2">今年度の加入期間を選択してください</p>
+                        <h6 class="mb-3 text-primary border-bottom pb-2">今年度加入月（予定含む）</h6>
+                        <div class="radio-card">
                             <div class="month-grid">
-                                <!-- 1〜12ヶ月のラジオボタン -->
+                                <!-- 4月〜翌3月までのラジオボタン -->
                                 <script>
-                                    for(let i=1; i<=12; i++) {
+                                    const months = ["4月","5月","6月","7月","8月","9月","10月","11月","12月","1月","2月","3月"];
+                                    months.forEach((m, i) => {
                                         document.write(`
                                             <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="m_months" id="month_${i}" value="${i}" ${i==12?'checked':''}>
-                                                <label class="form-check-label" for="month_${i}">${i}ヶ月</label>
+                                                <input class="form-check-input" type="radio" name="m_join_month" id="m_${i}" value="${m}" ${m==='4月'?'checked':''}>
+                                                <label class="form-check-label small" for="m_${i}">${m}</label>
                                             </div>
                                         `);
-                                    }
+                                    });
                                 </script>
                             </div>
+                            <hr>
+                            <small class="text-muted">加入を開始する（または加入中の）月を選択してください。</small>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer bg-light">
                 <button type="button" class="btn btn-primary btn-lg w-100" onclick="savePersonData()">保存して閉じる</button>
             </div>
         </div>
@@ -147,6 +161,7 @@
     let currentEditId = null;
     const modal = new bootstrap.Modal(document.getElementById('personModal'));
 
+    // CSV読込
     async function init() {
         try {
             const res = await fetch('salary_table.csv?t=' + Date.now());
@@ -158,25 +173,47 @@
                 if(c.length>=3) salaryTable.push({min:parseInt(c[0]), max:parseInt(c[1]), exp:c[2].trim()});
             }
             document.getElementById('csvStatus').innerText = "CSV連携OK";
-        } catch(e) { document.getElementById('csvStatus').innerText = "CSV未読込"; }
+            document.getElementById('csvStatus').className = "badge bg-success text-white shadow-sm";
+        } catch(e) { 
+            document.getElementById('csvStatus').innerText = "CSV未読込"; 
+            document.getElementById('csvStatus').className = "badge bg-danger text-white shadow-sm";
+        }
     }
 
+    // ドラッグ＆ドロップ
+    function dragStartHandler(e) { e.dataTransfer.setData("text/plain", "add"); }
+    function dragOverHandler(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+    function dragLeaveHandler(e) { e.currentTarget.classList.remove('drag-over'); }
+    function dropHandler(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        addPerson();
+    }
+
+    // 家族追加
     function addPerson() {
         const id = Date.now();
         household.push({
             id: id, birth: "", care: "無", salary: 0, calcIncome: 0, pension: 0,
-            o1:0, o2:0, o3:0, o4:0, o5:0, months: 12
+            o1:0, o2:0, o3:0, o4:0, o5:0, joinMonth: "4月"
         });
         renderHousehold();
     }
 
+    // 描画
     function renderHousehold() {
         const zone = document.getElementById('dropZone');
         zone.innerHTML = "";
         household.forEach((p, index) => {
             const div = document.createElement('div');
             div.className = "person-item";
-            div.innerHTML = `<div class="person-icon" onclick="editPerson(${p.id})"><i class="bi bi-person-fill"></i><button class="remove-btn" onclick="event.stopPropagation(); removePerson(${p.id})">×</button></div><div class="person-label">${index + 1}人目</div>`;
+            div.innerHTML = `
+                <div class="person-icon" onclick="editPerson(${p.id})">
+                    <i class="bi bi-person-fill"></i>
+                    <button class="remove-btn" onclick="event.stopPropagation(); removePerson(${p.id})">×</button>
+                </div>
+                <div class="person-label">${index + 1}人目</div>
+            `;
             zone.appendChild(div);
         });
     }
@@ -186,24 +223,24 @@
         renderHousehold();
     }
 
+    // 編集モーダル
     function editPerson(id) {
         currentEditId = id;
         const p = household.find(x => x.id === id);
         document.getElementById('m_birth').value = p.birth;
         document.getElementById('m_salary').value = p.salary || "";
         document.getElementById('m_pension').value = p.pension || "";
+        document.getElementById(p.care === '有' ? 'care_yes' : 'care_no').checked = true;
         document.getElementById('m_o1').value = p.o1 || "";
         document.getElementById('m_o2').value = p.o2 || "";
         document.getElementById('m_o3').value = p.o3 || "";
         document.getElementById('m_o4').value = p.o4 || "";
         document.getElementById('m_o5').value = p.o5 || "";
         
-        // 介護分限ラジオボタン
-        document.getElementById(p.care === '有' ? 'care_yes' : 'care_no').checked = true;
-        
-        // 加入月ラジオボタン
-        document.getElementById(`month_${p.months}`).checked = true;
-        
+        // 加入月ラジオボタンの選択
+        const monthRadios = document.getElementsByName('m_join_month');
+        monthRadios.forEach(r => { if(r.value === p.joinMonth) r.checked = true; });
+
         updateCalculatedIncome(p.salary);
         modal.show();
     }
@@ -223,19 +260,20 @@
         p.salary = parseInt(document.getElementById('m_salary').value) || 0;
         p.calcIncome = updateCalculatedIncome(p.salary);
         p.pension = parseInt(document.getElementById('m_pension').value) || 0;
+        p.care = document.querySelector('input[name="m_care"]:checked').value;
         p.o1 = parseInt(document.getElementById('m_o1').value) || 0;
         p.o2 = parseInt(document.getElementById('m_o2').value) || 0;
         p.o3 = parseInt(document.getElementById('m_o3').value) || 0;
         p.o4 = parseInt(document.getElementById('m_o4').value) || 0;
         p.o5 = parseInt(document.getElementById('m_o5').value) || 0;
-        p.care = document.querySelector('input[name="m_care"]:checked').value;
-        p.months = parseInt(document.querySelector('input[name="m_months"]:checked').value);
+        p.joinMonth = document.querySelector('input[name="m_join_month"]:checked').value;
         modal.hide();
     }
 
     function executeCalculation() {
-        console.log("計算用データ:", household);
-        alert("世帯データ（" + household.length + "名分）を保存しました。コンソールで詳細を確認できます。");
+        if(household.length === 0) { alert("家族を一人以上追加してください。"); return; }
+        console.log("計算対象世帯データ:", household);
+        alert(household.length + "名分のデータを保存しました。");
     }
 
     init();
