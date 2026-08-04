@@ -3,215 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>国保料 簡易計算シミュレーター</title>
+    <title>国保料シミュレーター - ビジュアル版</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <style>
-        body { background-color: #f8f9fa; }
-        .container { max-width: 900px; margin-top: 30px; padding-bottom: 50px; }
-        .card { border: none; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .page { display: none; }
-        .page.active { display: block; }
-        .table-responsive { font-size: 0.85rem; }
-        .table th { white-space: nowrap; background-color: #e9ecef; }
-        .nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
-        .calculated-row { background-color: #fff3cd; font-weight: bold; }
-        .status-badge { font-size: 0.7rem; vertical-align: middle; }
+        body { background-color: #f0f2f5; font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", sans-serif; }
+        .setup-container { display: flex; gap: 20px; padding: 20px; }
+        
+        /* 左側：追加エリア */
+        .source-panel { width: 150px; background: #fff; border-radius: 15px; padding: 20px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .person-seed { width: 80px; height: 80px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; cursor: grab; margin: 0 auto; transition: transform 0.2s; }
+        .person-seed:hover { transform: scale(1.1); }
+
+        /* 右側：世帯枠 */
+        .drop-zone { flex-grow: 1; min-height: 400px; background: #fff; border: 3px dashed #cbd5e0; border-radius: 15px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-content: flex-start; transition: background 0.3s; }
+        .drop-zone.drag-over { background: #e2e8f0; border-color: #4a5568; }
+
+        /* 配置された人 */
+        .person-item { width: 100px; text-align: center; cursor: pointer; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .person-icon { width: 70px; height: 70px; background: #6c757d; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 5px; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .person-item:hover .person-icon { background: #495057; }
+        .person-label { font-size: 0.8rem; font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        
+        .remove-btn { position: absolute; top: -5px; right: -5px; background: #ff4757; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 12px; cursor: pointer; }
+
+        /* 数字入力の右寄せ設定 */
+        input[type="number"] { text-align: right; }
+        .calc-result-box { text-align: right; font-weight: bold; border-bottom: 2px solid #007bff; padding: 2px 5px; }
+
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+
+        /* 月選択のグリッド */
+        .month-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .form-check-label { font-size: 0.9rem; }
     </style>
 </head>
 <body>
 
+<nav class="navbar navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+        <span class="navbar-brand">国保料 簡易計算 (ビジュアルモード)</span>
+        <span id="csvStatus" class="badge bg-light text-dark">CSV読込中...</span>
+    </div>
+</nav>
+
 <div class="container">
-    <h2 class="text-center mb-4">国保料 簡易計算 <span id="csvStatus" class="badge bg-secondary status-badge">CSV読込中...</span></h2>
+    <div class="alert alert-info py-2">
+        左のアイコンを右の枠に<strong>ドラッグ</strong>するか<strong>クリック</strong>して家族を追加してください。
+    </div>
 
-    <div class="card p-4">
-        
-        <!-- １ページ目の質問 -->
-        <div id="page1" class="page active">
-            <h4 class="mb-4">1. 世帯構成について</h4>
-            
-            <div class="mb-3">
-                <label class="form-label">１．国保に加入する人は何人ですか？</label>
-                <input type="number" class="form-control" id="q1" placeholder="0" min="0">
+    <div class="setup-container">
+        <div class="source-panel">
+            <h6>追加</h6>
+            <div class="person-seed" draggable="true" id="dragSeed" onclick="addPerson()">
+                <i class="bi bi-person-plus-fill"></i>
             </div>
-
-            <div class="mb-3">
-                <label class="form-label">２．その内で、介護対象者は何人ですか？</label>
-                <input type="number" class="form-control" id="q2" placeholder="0" min="0">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">３．その内で、未就学児は何人ですか？</label>
-                <input type="number" class="form-control" id="q3" placeholder="0" min="0">
-            </div>
-
-            <div class="mb-4">
-                <label class="form-label">４．１９歳以上の方は何人ですか？</label>
-                <input type="number" class="form-control" id="q4" placeholder="0" min="0">
-            </div>
-
-            <div class="nav-buttons">
-                <div></div>
-                <button class="btn btn-primary btn-lg" onclick="nextPage()">次へ：所得の入力 ＞</button>
-            </div>
+            <p class="mt-2 text-muted small">追加する</p>
         </div>
 
-        <!-- ２ページ目の質問（表形式） -->
-        <div id="page2" class="page">
-            <h4 class="mb-4">2. 所得について（3名分固定）</h4>
-            <div class="table-responsive">
-                <table class="table table-bordered align-middle">
-                    <thead>
-                        <tr>
-                            <th style="min-width: 180px;">項目</th>
-                            <th>1人目</th>
-                            <th>2人目</th>
-                            <th>3人目</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <th>給与収入</th>
-                            <td><input type="number" class="form-control salary-input" data-person="0" placeholder="0"></td>
-                            <td><input type="number" class="form-control salary-input" data-person="1" placeholder="0"></td>
-                            <td><input type="number" class="form-control salary-input" data-person="2" placeholder="0"></td>
-                        </tr>
-                        <tr>
-                            <th>介護分限所得有無</th>
-                            <td><select class="form-select"><option>無</option><option>有</option></select></td>
-                            <td><select class="form-select"><option>無</option><option>有</option></select></td>
-                            <td><select class="form-select"><option>無</option><option>有</option></select></td>
-                        </tr>
-                        <tr>
-                            <th>年金収入（６４歳以下）</th>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                        </tr>
-                        <tr>
-                            <th>年金収入（６５歳以上）</th>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                        </tr>
-                        <tr>
-                            <th>その他所得１</th>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                        </tr>
-                        <tr>
-                            <th>その他所得２</th>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                        </tr>
-                        <tr>
-                            <th>その他所得３</th>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                        </tr>
-                        <tr>
-                            <th>その他所得４</th>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                        </tr>
-                        <tr>
-                            <th>その他所得５</th>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                            <td><input type="number" class="form-control" value="0"></td>
-                        </tr>
-                        <!-- CSVから自動計算される所得項目 -->
-                        <tr class="calculated-row">
-                            <th>給与所得（自動計算）</th>
-                            <td id="res0">0</td>
-                            <td id="res1">0</td>
-                            <td id="res2">0</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="nav-buttons mt-4">
-                <button class="btn btn-secondary btn-lg" onclick="prevPage()">＜ 戻る</button>
-                <button class="btn btn-success btn-lg" onclick="alert('最終的な計算ロジックをここに実装予定です')">計算する</button>
-            </div>
+        <div class="drop-zone" id="dropZone" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)">
+            <!-- ここに追加された人が並ぶ -->
         </div>
+    </div>
 
+    <div class="text-center mt-4">
+        <button class="btn btn-success btn-lg px-5" onclick="executeCalculation()">計算する</button>
     </div>
 </div>
 
+<!-- プロパティ編集モーダル -->
+<div class="modal fade" id="personModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title">個人の詳細設定</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!-- 基本情報 -->
+                    <div class="col-md-6 border-end">
+                        <h6 class="mb-3"><i class="bi bi-cash-stack"></i> 収入・所得情報</h6>
+                        <div class="mb-3">
+                            <label class="form-label small mb-1">生年月日</label>
+                            <input type="date" class="form-control" id="m_birth">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small mb-1">給与収入</label>
+                            <input type="number" class="form-control" id="m_salary" oninput="updateCalculatedIncome(this.value)" placeholder="0">
+                            <div class="mt-2 d-flex justify-content-between align-items-center">
+                                <span class="small text-primary">自動計算された所得:</span>
+                                <span class="calc-result-box text-primary" id="m_calc_income">0</span>
+                            </div>
+                        </div>
+                        <div class="mb-3 border-top pt-2">
+                            <label class="form-label small mb-1">年金収入</label>
+                            <input type="number" class="form-control" id="m_pension" placeholder="0">
+                        </div>
+                        <div class="row row-cols-2 g-2 mb-3 border-top pt-2">
+                            <div class="col"><label class="small">その他所得1</label><input type="number" class="form-control" id="m_o1" placeholder="0"></div>
+                            <div class="col"><label class="small">その他所得2</label><input type="number" class="form-control" id="m_o2" placeholder="0"></div>
+                            <div class="col"><label class="small">その他所得3</label><input type="number" class="form-control" id="m_o3" placeholder="0"></div>
+                            <div class="col"><label class="small">その他所得4</label><input type="number" class="form-control" id="m_o4" placeholder="0"></div>
+                            <div class="col"><label class="small">その他所得5</label><input type="number" class="form-control" id="m_o5" placeholder="0"></div>
+                        </div>
+                    </div>
+                    <!-- 加入月選択 -->
+                    <div class="col-md-6">
+                        <h6 class="mb-3"><i class="bi bi-calendar-check"></i> 加入月（4月〜翌3月）</h6>
+                        <div class="month-grid p-2 border rounded bg-light" id="monthGrid">
+                            <!-- JSで生成 -->
+                        </div>
+                        <div class="mt-3 small text-muted">
+                            ※国民健康保険に加入している月を選択してください。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light text-center">
+                <button type="button" class="btn btn-primary btn-lg w-100" onclick="savePersonData()">保存して閉じる</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let salaryTable = [];
+    let household = [];
+    let currentEditId = null;
+    const modal = new bootstrap.Modal(document.getElementById('personModal'));
 
-    // CSVファイルの読み込み処理
-    async function loadCSV() {
-        const status = document.getElementById('csvStatus');
+    async function init() {
         try {
-            const response = await fetch('salary_table.csv?t=' + new Date().getTime());
-            if (!response.ok) throw new Error();
-            const data = await response.text();
+            const res = await fetch('salary_table.csv?t=' + Date.now());
+            const data = await res.text();
             const lines = data.split(/\r?\n/);
-            
-            salaryTable = []; // 初期化
-            for (let i = 1; i < lines.length; i++) {
-                const cols = lines[i].split(',');
-                if (cols.length >= 3) {
-                    salaryTable.push({
-                        min: parseInt(cols[0]),
-                        max: parseInt(cols[1]),
-                        incomeStr: cols[2].trim()
-                    });
-                }
+            salaryTable = [];
+            for(let i=1; i<lines.length; i++) {
+                const c = lines[i].split(',');
+                if(c.length>=3) salaryTable.push({min:parseInt(c[0]), max:parseInt(c[1]), exp:c[2].trim()});
             }
-            status.innerText = "CSV読み込み完了";
-            status.className = "badge bg-success status-badge";
-        } catch (e) {
-            status.innerText = "CSV未読み込み";
-            status.className = "badge bg-danger status-badge";
+            document.getElementById('csvStatus').innerText = "CSV連携OK";
+        } catch(e) {
+            document.getElementById('csvStatus').innerText = "CSV未読込";
         }
     }
 
-    // 画面切り替えロジック
-    function nextPage() {
-        document.getElementById('page1').classList.remove('active');
-        document.getElementById('page2').classList.add('active');
-        window.scrollTo(0, 0);
-    }
-    function prevPage() {
-        document.getElementById('page2').classList.remove('active');
-        document.getElementById('page1').classList.add('active');
-        window.scrollTo(0, 0);
+    function dragOverHandler(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+    function dragLeaveHandler(e) { e.currentTarget.classList.remove('drag-over'); }
+    function dropHandler(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        addPerson();
     }
 
-    // 給与収入入力時の自動計算ロジック
-    document.querySelectorAll('.salary-input').forEach(input => {
-        input.addEventListener('input', function() {
-            const val = parseInt(this.value) || 0;
-            const personIdx = this.dataset.person;
-            let resultIncome = 0;
-            
-            // CSVテーブルから条件に合う行を探す
-            const match = salaryTable.find(row => val >= row.min && val <= row.max);
-            
-            if (match) {
-                if (match.incomeStr.includes('salary')) {
-                    // 数式（例: salary-550000）を計算
-                    resultIncome = eval(match.incomeStr.replace('salary', val));
-                } else {
-                    // 固定値
-                    resultIncome = parseInt(match.incomeStr);
-                }
-            }
-            // 結果を表示
-            document.getElementById(`res${personIdx}`).innerText = resultIncome.toLocaleString();
+    function addPerson() {
+        const id = Date.now();
+        const newPerson = {
+            id: id, birth: "", salary: 0, calcIncome: 0, pension: 0,
+            o1:0, o2:0, o3:0, o4:0, o5:0,
+            months: [4,5,6,7,8,9,10,11,12,1,2,3]
+        };
+        household.push(newPerson);
+        renderHousehold();
+    }
+
+    function renderHousehold() {
+        const zone = document.getElementById('dropZone');
+        zone.innerHTML = "";
+        household.forEach((p, index) => {
+            const div = document.createElement('div');
+            div.className = "person-item";
+            div.innerHTML = `
+                <div class="person-icon" onclick="editPerson(${p.id})">
+                    <i class="bi bi-person-fill"></i>
+                    <button class="remove-btn" onclick="event.stopPropagation(); removePerson(${p.id})">×</button>
+                </div>
+                <div class="person-label">${index + 1}人目</div>
+            `;
+            zone.appendChild(div);
         });
-    });
+    }
 
-    // 初期実行
-    loadCSV();
+    function removePerson(id) {
+        household = household.filter(p => p.id !== id);
+        renderHousehold();
+    }
+
+    function editPerson(id) {
+        currentEditId = id;
+        const p = household.find(x => x.id === id);
+        
+        document.getElementById('m_birth').value = p.birth;
+        document.getElementById('m_salary').value = p.salary || "";
+        document.getElementById('m_pension').value = p.pension || "";
+        document.getElementById('m_o1').value = p.o1 || "";
+        document.getElementById('m_o2').value = p.o2 || "";
+        document.getElementById('m_o3').value = p.o3 || "";
+        document.getElementById('m_o4').value = p.o4 || "";
+        document.getElementById('m_o5').value = p.o5 || "";
+        updateCalculatedIncome(p.salary);
+
+        const grid = document.getElementById('monthGrid');
+        grid.innerHTML = "";
+        const monthOrder = [4,5,6,7,8,9,10,11,12,1,2,3];
+        monthOrder.forEach(m => {
+            const active = p.months.includes(m);
+            grid.innerHTML += `
+                <div class="form-check">
+                    <input class="form-check-input m-check" type="checkbox" value="${m}" id="m${m}" ${active?'checked':''}>
+                    <label class="form-check-label" for="m${m}">${m}月</label>
+                </div>`;
+        });
+        modal.show();
+    }
+
+    function updateCalculatedIncome(val) {
+        val = parseInt(val) || 0;
+        let income = 0;
+        const match = salaryTable.find(r => val >= r.min && val <= r.max);
+        if(match) {
+            income = match.exp.includes('salary') ? eval(match.exp.replace('salary', val)) : parseInt(match.exp);
+        }
+        document.getElementById('m_calc_income').innerText = income.toLocaleString();
+        return income;
+    }
+
+    function savePersonData() {
+        const p = household.find(x => x.id === currentEditId);
+        p.birth = document.getElementById('m_birth').value;
+        p.salary = parseInt(document.getElementById('m_salary').value) || 0;
+        p.calcIncome = updateCalculatedIncome(p.salary);
+        p.pension = parseInt(document.getElementById('m_pension').value) || 0;
+        p.o1 = parseInt(document.getElementById('m_o1').value) || 0;
+        p.o2 = parseInt(document.getElementById('m_o2').value) || 0;
+        p.o3 = parseInt(document.getElementById('m_o3').value) || 0;
+        p.o4 = parseInt(document.getElementById('m_o4').value) || 0;
+        p.o5 = parseInt(document.getElementById('m_o5').value) || 0;
+        
+        p.months = [];
+        document.querySelectorAll('.m-check:checked').forEach(cb => {
+            p.months.push(parseInt(cb.value));
+        });
+
+        modal.hide();
+    }
+
+    function executeCalculation() {
+        if(household.length === 0) {
+            alert("世帯に人がいません。追加してください。");
+            return;
+        }
+        alert("世帯データ（" + household.length + "名分）を元に保険料の計算ロジックを開始します。");
+        console.log("Current Household Data:", household);
+    }
+
+    init();
 </script>
 
 </body>
