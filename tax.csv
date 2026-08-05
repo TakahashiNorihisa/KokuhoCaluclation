@@ -1,0 +1,5 @@
+category,income_rate,per_capita,over18_per_capita,household_base,limit
+medical,8.03,26900,0,26500,670000
+support,2.21,7400,0,7300,260000
+nursing,1.78,6900,0,4700,170000
+child,0.29,1000,100,1000,30000
