@@ -11,20 +11,19 @@
         .setup-wrapper { display: flex; gap: 15px; margin-top: 10px; align-items: stretch; }
         .source-panel { width: 140px; background: #fff; border-radius: 15px; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0; }
         .person-seed { width: 70px; height: 70px; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; cursor: grab; margin: 0 auto; transition: 0.2s; }
-        .person-seed:hover { transform: scale(1.1); }
         .drop-zone { flex-grow: 1; min-height: 400px; background: #fff; border: 3px dashed #cbd5e0; border-radius: 15px; padding: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-content: flex-start; }
         .drop-zone.drag-over { background: #e2e8f0; border-color: #007bff; }
         .info-panel { width: 280px; background: #fff; border-radius: 15px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0; border-left: 5px solid #007bff; }
         .info-title { font-weight: bold; border-bottom: 2px solid #f0f2f5; margin-bottom: 10px; padding-bottom: 5px; color: #007bff; }
         .person-item { width: 90px; text-align: center; cursor: pointer; position: relative; }
-        .person-icon { width: 65px; height: 65px; background: #6c757d; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: 0.2s; }
-        .person-item:hover .person-icon { background: #007bff; transform: translateY(-3px); }
+        .person-icon { width: 65px; height: 65px; background: #6c757d; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; margin: 0 auto 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .remove-btn { position: absolute; top: -5px; right: -5px; background: #ff4757; color: white; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 11px; z-index: 10; }
         input[type="number"] { text-align: right; }
         .result-card { background: #fff; border-radius: 15px; padding: 25px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); display: none; border-top: 5px solid #198754; }
-        .info-row { display: flex; justify-content: space-between; font-size: 0.85rem; border-bottom: 1px dotted #eee; margin-bottom: 4px; }
-        .info-val { font-weight: bold; }
-        #debugLog { background: #2d2d2d; color: #00ff00; font-family: monospace; padding: 15px; border-radius: 10px; margin-top: 20px; font-size: 0.8rem; display: none; max-height: 500px; overflow-y: auto; }
+        #debugLog { background: #1e1e1e; color: #d4d4d4; font-family: 'Consolas', monospace; padding: 20px; border-radius: 10px; margin-top: 20px; font-size: 0.85rem; display: none; max-height: 600px; overflow-y: auto; border: 2px solid #333; }
+        .debug-section { color: #569cd6; font-weight: bold; margin-top: 15px; border-bottom: 1px solid #333; }
+        .debug-detail { color: #ce9178; margin-left: 15px; }
+        .debug-calc { color: #b5cea8; margin-left: 30px; }
         .age-badge { background: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 10px; font-weight: bold; font-size: 0.85rem; }
     </style>
 </head>
@@ -34,21 +33,17 @@
     <div class="container-fluid px-4">
         <span class="navbar-brand">国保料 簡易計算</span>
         <div class="d-flex align-items-center">
-            <div class="form-check form-switch text-white me-3">
+            <div class="form-check form-switch text-white me-3 small">
                 <input class="form-check-input" type="checkbox" id="debugModeToggle" onchange="toggleDebug(this.checked)">
-                <label class="form-check-label small" for="debugModeToggle">Debug</label>
+                <label class="form-check-label" for="debugModeToggle">計算ログを表示</label>
             </div>
-            <span id="csvStatusS" class="badge bg-light text-dark me-1">S: --</span>
-            <span id="csvStatusT" class="badge bg-light text-dark">T: --</span>
+            <span id="csvStatusS" class="badge bg-light text-dark me-1">S:--</span>
+            <span id="csvStatusT" class="badge bg-light text-dark">T:--</span>
         </div>
     </div>
 </nav>
 
 <div class="container-fluid px-4">
-    <div class="alert alert-info py-2 shadow-sm small">
-        左のアイコンを中央の枠に<strong>ドラッグ</strong>するか<strong>クリック</strong>して家族を追加してください。
-    </div>
-
     <div class="setup-wrapper">
         <div class="source-panel shadow-sm text-center">
             <h6 class="small fw-bold">家族を追加</h6>
@@ -58,12 +53,7 @@
             <p class="mt-3 text-muted small">ドラッグ or クリック</p>
         </div>
 
-        <div class="drop-zone shadow-sm" id="dropZone" 
-             ondrop="dropHandler(event)" 
-             ondragover="dragOverHandler(event)" 
-             ondragleave="dragLeaveHandler(event)">
-            <!-- アイコン追加エリア -->
-        </div>
+        <div class="drop-zone shadow-sm" id="dropZone" ondrop="dropHandler(event)" ondragover="dragOverHandler(event)" ondragleave="dragLeaveHandler(event)"></div>
 
         <div class="info-panel shadow-sm">
             <div class="info-title">設定内容</div>
@@ -71,40 +61,40 @@
         </div>
     </div>
 
-    <div class="text-center mt-4 mb-4">
+    <div class="text-center mt-4">
         <button class="btn btn-success btn-lg px-5 shadow" onclick="calculateTotalTax()"><i class="bi bi-calculator me-2"></i>計算を実行する</button>
     </div>
 
     <div id="resultArea" class="result-card mb-4">
         <h4 class="text-center mb-4 fw-bold">概算計算結果</h4>
-        <div class="row text-center mb-4">
+        <div class="row text-center mb-4 border-bottom pb-4">
             <div class="col-md-6 border-end">
-                <div class="text-muted small">年間保険料（概算）</div>
+                <div class="text-muted small">年間保険料 合計</div>
                 <div class="display-4 fw-bold" id="res_total">0<small class="fs-6 ms-1 text-muted">円</small></div>
             </div>
             <div class="col-md-6 text-secondary">
-                <div class="text-muted small">月平均額（12ヶ月按分）</div>
+                <div class="text-muted small">月平均（参考）</div>
                 <div class="display-5 fw-bold" id="res_monthly">0<small class="fs-6 ms-1">円</small></div>
             </div>
         </div>
         <table class="table table-bordered table-sm align-middle text-end small">
             <thead class="table-light text-center">
-                <tr><th style="width:30%">区分</th><th>所得割</th><th>均等割</th><th>平等割</th><th>合計</th></tr>
+                <tr><th style="width:30%">課税区分</th><th>所得割</th><th>均等割</th><th>平等割</th><th>区分合計</th></tr>
             </thead>
             <tbody id="res_table_body"></tbody>
         </table>
     </div>
 
     <div id="debugLog">
-        <div class="fw-bold border-bottom mb-2">--- DEBUG LOG ---</div>
+        <div class="text-warning fw-bold border-bottom mb-2 pb-1">■ 計算詳細デバッグログ</div>
         <div id="debugContent"></div>
     </div>
 </div>
 
 <!-- モーダル -->
 <div class="modal fade" id="personModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content shadow">
+    <div class="modal-dialog modal-lg shadow">
+        <div class="modal-content">
             <div class="modal-header bg-light">
                 <h5 class="modal-title fw-bold">詳細設定</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -112,20 +102,21 @@
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-6 border-end">
-                        <label class="small">生年月日</label>
-                        <div class="d-flex align-items-center gap-2 mb-2">
+                        <label class="small fw-bold">生年月日</label>
+                        <div class="d-flex align-items-center gap-2 mb-3">
                             <input type="date" class="form-control" id="m_birth" onchange="updateAgeDisplay(this.value)">
                             <span id="m_age_val" class="age-badge">--歳</span>
                         </div>
-                        <label class="small d-block mb-1">介護分限所得有無</label>
+                        <label class="small fw-bold d-block mb-1">介護分限所得有無</label>
                         <div class="mb-3 border p-2 rounded bg-light">
                             <input type="radio" name="m_care" id="care_no" value="無" checked> <label for="care_no" class="small me-2">無</label>
                             <input type="radio" name="m_care" id="care_yes" value="有"> <label for="care_yes" class="small">有</label>
                         </div>
-                        <label class="small">給与収入</label>
+                        <label class="small fw-bold">給与収入</label>
                         <input type="number" class="form-control mb-1" id="m_salary" oninput="updateCalculatedIncome(this.value)" placeholder="0">
-                        <div class="text-end small text-primary mb-3">自動所得: <span id="m_calc_income">0</span>円</div>
-                        <label class="small">年金収入</label><input type="number" class="form-control mb-3" id="m_pension" placeholder="0">
+                        <div class="text-end small text-primary mb-3">所得換算: <span id="m_calc_income">0</span>円</div>
+                        <label class="small fw-bold">年金収入</label><input type="number" class="form-control mb-3" id="m_pension" placeholder="0">
+                        <label class="small fw-bold mb-1">その他所得</label>
                         <div class="row row-cols-2 g-2">
                             <div class="col"><input type="number" class="form-control form-control-sm" id="m_o1" placeholder="所得1"></div>
                             <div class="col"><input type="number" class="form-control form-control-sm" id="m_o2" placeholder="所得2"></div>
@@ -135,7 +126,7 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <h6>今年度加入月</h6>
+                        <h6 class="fw-bold text-primary mb-3">今年度加入開始月</h6>
                         <div class="row row-cols-3 g-2 p-2 border rounded bg-light">
                             <script>
                                 const ms = ["4月","5月","6月","7月","8月","9月","10月","11月","12月","1月","2月","3月"];
@@ -145,7 +136,7 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer"><button class="btn btn-primary btn-lg w-100" onclick="savePersonData()">保存</button></div>
+            <div class="modal-footer"><button class="btn btn-primary btn-lg w-100 shadow" onclick="savePersonData()">設定を保存</button></div>
         </div>
     </div>
 </div>
@@ -157,24 +148,7 @@
     const modal = new bootstrap.Modal(document.getElementById('personModal'));
     const categoryNames = { "medical": "基礎課税額（医療分）", "support": "後期高齢者支援金等課税額（支援金分）", "nursing": "介護納付金課税額（介護分）", "child": "子ども・子育て支援納付金課税額（子ども分）" };
 
-    // --- ドラッグ＆ドロップ用関数 ---
-    function dragStartHandler(e) {
-        e.dataTransfer.setData("text/plain", "add");
-    }
-    function dragOverHandler(e) {
-        e.preventDefault();
-        e.currentTarget.classList.add('drag-over');
-    }
-    function dragLeaveHandler(e) {
-        e.currentTarget.classList.remove('drag-over');
-    }
-    function dropHandler(e) {
-        e.preventDefault();
-        e.currentTarget.classList.remove('drag-over');
-        addPerson();
-    }
-
-    // --- 各種ロジック ---
+    // --- システム初期化 ---
     async function init() {
         try {
             const resS = await fetch('salary_table.csv?t=' + Date.now());
@@ -188,29 +162,32 @@
         } catch(e) { console.error(e); }
     }
 
-    function toggleDebug(checked) {
-        isDebug = checked;
-        document.getElementById('debugLog').style.display = isDebug ? "block" : "none";
-    }
+    // --- ドラッグ＆ドロップ ---
+    function dragStartHandler(e) { e.dataTransfer.setData("text", "add"); }
+    function dragOverHandler(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+    function dragLeaveHandler(e) { e.currentTarget.classList.remove('drag-over'); }
+    function dropHandler(e) { e.preventDefault(); e.currentTarget.classList.remove('drag-over'); addPerson(); }
 
-    function logDebug(msg) {
+    // --- デバッグログ用 ---
+    function toggleDebug(checked) { isDebug = checked; document.getElementById('debugLog').style.display = isDebug ? "block" : "none"; }
+    function addLog(msg, type='info') {
         if(!isDebug) return;
-        const d = document.createElement('div'); d.innerText = "> " + msg;
-        document.getElementById('debugContent').appendChild(d);
+        const div = document.createElement('div');
+        div.className = type === 'section' ? 'debug-section' : (type === 'detail' ? 'debug-detail' : 'debug-calc');
+        div.innerText = (type === 'section' ? '■ ' : '  - ') + msg;
+        document.getElementById('debugContent').appendChild(div);
     }
 
-    function getAge(birthStr) {
-        if (!birthStr) return null;
-        const b = new Date(birthStr), t = new Date();
+    // --- 各種計算 ---
+    function getAge(birth) {
+        if (!birth) return 0;
+        const b = new Date(birth), t = new Date();
         let age = t.getFullYear() - b.getFullYear();
         if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) age--;
         return age;
     }
 
-    function updateAgeDisplay(val) {
-        const age = getAge(val);
-        document.getElementById('m_age_val').innerText = age !== null ? age + "歳" : "--歳";
-    }
+    function updateAgeDisplay(val) { document.getElementById('m_age_val').innerText = getAge(val) + "歳"; }
 
     function addPerson() {
         const id = Date.now();
@@ -267,40 +244,81 @@
     function calculateTotalTax() {
         if(household.length === 0) return alert("家族を追加してください");
         document.getElementById('debugContent').innerHTML = "";
-        logDebug("--- 計算開始 ---");
-        let totalAnn = 0, sumInc = household.reduce((s, p) => s + (p.calcIncome + p.pension + p.o1 + p.o2 + p.o3 + p.o4 + p.o5), 0);
+        addLog("計算処理を開始します", "section");
+
+        let sumInc = 0;
+        household.forEach((p, i) => {
+            const pTotal = p.calcIncome + p.pension + p.o1 + p.o2 + p.o3 + p.o4 + p.o5;
+            sumInc += pTotal;
+            addLog(`${i+1}人目 合計所得: ${pTotal.toLocaleString()}円 (年齢: ${getAge(p.birth)}歳, 加入開始: ${p.joinMonth})`, "detail");
+        });
+
         let taxInc = Math.max(0, sumInc - 430000);
-        logDebug(`所得合計: ${sumInc}, 控除後: ${taxInc}`);
+        addLog(`世帯総所得: ${sumInc.toLocaleString()}円 - 基礎控除: 430,000円 = 所得割算定基数: ${taxInc.toLocaleString()}円`, "detail");
+
+        let totalAnn = 0;
         const resB = document.getElementById('res_table_body'); resB.innerHTML = "";
 
-        ["medical", "support", "nursing", "child"].forEach(k => {
-            const cfg = taxConfig[k]; if(!cfg) return;
-            let incP = Math.floor(taxInc * (cfg.rate / 100)), perP = 0;
-            household.forEach(p => {
+        ["medical", "support", "nursing", "child"].forEach(key => {
+            const cfg = taxConfig[key]; if(!cfg) return;
+            addLog(categoryNames[key], "section");
+
+            // 所得割
+            let incP = Math.floor(taxInc * (cfg.rate / 100));
+            addLog(`所得割: ${taxInc.toLocaleString()} × ${cfg.rate}% = ${incP.toLocaleString()}円`, "detail");
+
+            // 均等割（一人ずつ計算）
+            let perTotal = 0;
+            household.forEach((p, i) => {
                 const age = getAge(p.birth);
-                const joinM = 12 - ["4月","5月","6月","7月","8月","9月","10月","11月","12月","1月","2月","3月"].indexOf(p.joinMonth);
+                const joinMonths = 12 - ["4月","5月","6月","7月","8月","9月","10月","11月","12月","1月","2月","3月"].indexOf(p.joinMonth);
                 let unit = 0;
-                if(k === "nursing") { if(age >= 40 && age <= 64) unit = cfg.per; }
-                else if(k === "child") { if(age >= 18) unit = cfg.o18per; }
-                else { unit = cfg.per; }
-                perP += unit * (joinM / 12);
+
+                if (key === "medical" || key === "support") {
+                    unit = cfg.per;
+                } else if (key === "nursing") {
+                    if (age >= 40 && age <= 64) unit = cfg.per;
+                } else if (key === "child") {
+                    if (age >= 18) unit = cfg.o18per; // 18歳以上
+                    else unit = 0; // 18歳未満（軽減想定）
+                }
+
+                const pVal = unit * (joinMonths / 12);
+                if (unit > 0 || isDebug) {
+                    addLog(`${i+1}人目 均等割: 単価${unit.toLocaleString()}円 × ${joinMonths}/12ヶ月 = ${Math.round(pVal).toLocaleString()}円 (年齢:${age}歳)`, "calc");
+                }
+                perTotal += pVal;
             });
-            let sub = Math.min(cfg.limit, Math.round(incP + perP + cfg.base));
-            if(k === "nursing" && perP === 0) sub = 0;
-            totalAnn += sub;
-            resB.innerHTML += `<tr><td class="text-start fw-bold">${categoryNames[k]}</td><td>${incP.toLocaleString()}</td><td>${Math.round(perP).toLocaleString()}</td><td>${cfg.base.toLocaleString()}</td><td class="table-success fw-bold">${sub.toLocaleString()}</td></tr>`;
+
+            // 平等割
+            let baseVal = cfg.base;
+            addLog(`平等割: ${baseVal.toLocaleString()}円`, "detail");
+
+            let sub = Math.round(incP + perTotal + baseVal);
+            let finalSub = Math.min(cfg.limit, sub);
+            
+            // 介護保険の特例
+            if (key === "nursing" && perTotal === 0) finalSub = 0;
+
+            addLog(`小計: ${sub.toLocaleString()}円 → 限度額適用後: ${finalSub.toLocaleString()}円 (限度額:${cfg.limit.toLocaleString()}円)`, "detail");
+
+            totalAnn += finalSub;
+            resB.innerHTML += `<tr><td class="text-start fw-bold small">${categoryNames[key]}</td><td>${incP.toLocaleString()}</td><td>${Math.round(perTotal).toLocaleString()}</td><td>${baseVal.toLocaleString()}</td><td class="table-success fw-bold">${finalSub.toLocaleString()}</td></tr>`;
         });
+
         document.getElementById('res_total').innerText = Math.round(totalAnn).toLocaleString();
         document.getElementById('res_monthly').innerText = Math.round(totalAnn / 12).toLocaleString();
         document.getElementById('resultArea').style.display = "block";
+        addLog(`計算完了。最終合計保険料: ${Math.round(totalAnn).toLocaleString()}円`, "section");
         window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 
     function updateInfoPanel(id) {
         const p = household.find(x => x.id === id);
-        document.getElementById('infoContent').innerHTML = `<div class="info-row"><span>年齢</span><span>${getAge(p.birth)}歳</span></div><div class="info-row text-primary"><span>所得計</span><span>${(p.calcIncome+p.pension+p.o1+p.o2+p.o3+p.o4+p.o5).toLocaleString()}円</span></div>`;
+        const inc = (p.calcIncome + p.pension + p.o1 + p.o2 + p.o3 + p.o4 + p.o5);
+        document.getElementById('infoContent').innerHTML = `<div class="info-row"><span>年齢</span><span>${getAge(p.birth)}歳</span></div><div class="info-row text-primary"><span>所得合計</span><span>${inc.toLocaleString()}円</span></div><div class="info-row small"><span>開始月</span><span>${p.joinMonth}</span></div>`;
     }
-    function clearInfoPanel() { document.getElementById('infoContent').innerHTML = '<p class="text-muted small">ホバーで詳細</p>'; }
+    function clearInfoPanel() { document.getElementById('infoContent').innerHTML = '<p class="text-muted small">ホバーで詳細表示</p>'; }
     
     init();
 </script>
